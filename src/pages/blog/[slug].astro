@@ -6,21 +6,42 @@ import Layout from '../../layouts/Layout.astro';
 import H1 from '../../components/H1.astro';
 import MainContainer from '../../components/MainContainer.astro';
 import { Image } from 'astro:assets';
-export const getStaticPaths = (async () => {
-  const posts = await getCollection('posts');
-  const paths = posts.map((post) => ({
-    params: { slug: post.slug },
-    props: {
-      post,
-    },
-  }));
-  return paths;
-}) satisfies GetStaticPaths;
+import { getEntry } from 'astro:content';
 
-type Props = {
-  post: CollectionEntry<'posts'>;
-};
-const { post } = Astro.props;
+// Prerender page works for SSR
+export const prerender = false;
+
+// This is a static page, so we can use getStaticPaths to generate the paths
+// export const getStaticPaths = (async () => {
+//   const posts = await getCollection('posts');
+//   const paths = posts.map((post) => ({
+//     params: { slug: post.slug },
+//     props: {
+//       post,
+//     },
+//   }));
+//   return paths;
+// }) satisfies GetStaticPaths;
+
+// type Props = {
+//   post: CollectionEntry<'posts'>;
+// };
+// const { post } = Astro.props;
+// const { Content } = await post.render();
+
+/*
+ using SSR to get blog details instead of static generation
+ 1. get the slug from the url
+  2. get the post from the collection
+  3. render the post
+  4. pass the post to the layout
+  5. render the layout
+*/
+const { slug } = Astro.params;
+const post = await getEntry('posts', slug as string);
+if (!post) {
+  return Astro.redirect('/404');
+}
 const { Content } = await post.render();
 ---
 
@@ -35,7 +56,10 @@ const { Content } = await post.render();
       format="webp"
       class="rounded-2xl shadow-xl mb-6 aspect-thumbnail object-cover"
     />
-    <div class="prose prose-2xl overflow-visible relative mb-20" transition:animate="slide">
+    <div
+      class="prose prose-2xl overflow-visible relative mb-20"
+      transition:animate="slide"
+    >
       <Content />
     </div>
   </MainContainer>
